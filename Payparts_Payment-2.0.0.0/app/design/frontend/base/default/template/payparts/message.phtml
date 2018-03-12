@@ -1,0 +1,98 @@
+<ul id="payment_form_<?php echo $this->getMethodCode() ?>" style="display:none" class="form-list">
+    <li>
+        <?php echo $this->__('PayParts (<a href="//payparts2.privatbank.ua/ipp/" target="_blank">payparts2.privatbank.ua</a>) payment system.') ?>
+    </li>
+    <li id="payparts-select-block">
+        <p>Программа
+            <select id="system-sel" name="partsCount" style="width: 187px">
+                <option name="Оплата частями" pp-name="PP" value="<?php echo Mage::getStoreConfig('payment/payparts_redirect/ppperiod')+1 ?>" selected>Оплата частями</option>
+                <option name="Мгновенная рассрочка" pp-name="II" value="<?php echo Mage::getStoreConfig('payment/payparts_redirect/iiperiod')+1 ?>">Мгновенная рассрочка</option>
+                <option name="Деньги в периоде" pp-name="PB" value="<?php echo Mage::getStoreConfig('payment/payparts_redirect/pbperiod')+1 ?>">Деньги в периоде</option>
+            </select>
+            Срок,мес.  
+            <select id="month-sel" name="partsCount" style="width: 40px">
+                <option disabled>Срок,мес.</option>
+                <option selected value="2">2</option>
+                <?for ($i=0;$i < Mage::getStoreConfig('payment/payparts_redirect/ppperiod')+1; $i++){
+                    if($i > 2){
+                        echo '<option value='.$i.'>'.$i.'</option>';
+                    } else
+                    {
+                        continue;
+                    }
+                }?>
+            </select>
+            <button type="button" title="submit" class="button" id="send-period"> Check </button>
+        </p>
+        <p id="send-parts-error" style="display: none;">Error some</p>
+    </li>
+    <li id="payparts-success" style="display: none;">
+        <p><span id="system-name">Оплата частями</span> на <span id="payparts-period-success"></span> мес.</p>
+    </li>
+</ul>
+<script type="text/javascript">
+    function send() {
+        var paySystem = getPaySelectedAttr();
+
+        document.getElementById('payparts-period-success').innerHTML = document.getElementById('month-sel').value;
+        var url = "<?php echo $this->getUrl('payparts/payment/notify/', array('_secure' => false)); ?>";
+        new Ajax.Request( url, {
+            method: 'post',
+            parameters: 'parts='+document.getElementById('month-sel').value+'&system='+ paySystem['system'],
+            onSuccess: successFunc,
+            onFailure:  failureFunc
+        });
+
+    }
+    function successFunc(response){
+        console.log(response);
+        document.getElementById("payparts-select-block").style.display = "none";
+        document.getElementById("payparts-success").style.display = "block";
+        document.getElementById("payment-buttons-container").style.display = "block";
+        return true;
+    }
+    function failureFunc(response){
+        document.getElementById("send-parts-error").style.display = "block";
+        return false;
+    }
+
+    function getPaySelectedAttr(){
+        var result = {};
+        var e = document.getElementById("system-sel");
+        result['value'] = e.options[e.selectedIndex].value;
+        result['system'] = e.options[e.selectedIndex].getAttribute('pp-name');
+        result['name'] = e.options[e.selectedIndex].getAttribute('name');
+        return result;
+    }
+    
+    function periodChange(){
+        var selectData = getPaySelectedAttr();
+        var result = '<option disabled>Срок,мес.</option><option selected value="2">2</option>';
+        console.log(selectData);
+
+        for ($i=0;$i < selectData['value']; $i++){
+            if($i > 2){
+                result += '<option value='+$i+'>'+$i+'</option>';
+            }
+        }
+        document.getElementById('month-sel').innerHTML = result;
+        document.getElementById('system-name').innerHTML = selectData['name'];
+
+    }
+    function radioLisener(){
+        var radios = document.forms["co-payment-form"].elements["payment[method]"];
+        for(var i = 0, max = radios.length; i < max; i++) {
+            radios[i].onchange = function() {
+                if(document.getElementById('p_method_payparts_redirect').checked){
+                    document.getElementById("payment-buttons-container").style.display = "none";   
+                } else{
+                    document.getElementById("payment-buttons-container").style.display = "block";
+                }
+            }
+        }
+    }
+    radioLisener();
+    document.getElementById("send-parts-error").style.display = "none";
+    document.getElementById('send-period').onclick = send;
+    document.getElementById('system-sel').onchange = periodChange;
+</script>
